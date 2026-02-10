@@ -1,15 +1,16 @@
 # Multi-stage build for MCP ClickHouse Documentation Server
 
 # Stage 1: Build and index documentation
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
-# Install git and uv
+# Install git and curl
 RUN apt-get update && \
     apt-get install -y git curl && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
     rm -rf /var/lib/apt/lists/*
 
+# Install uv and add to PATH
 ENV PATH="/root/.cargo/bin:$PATH"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 WORKDIR /app
 
@@ -27,10 +28,14 @@ RUN mkdir -p /root/.cache/mcp-clickhouse-documentation && \
 # Stage 2: Runtime image
 FROM python:3.12-slim
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install curl
+RUN apt-get update && \
+    apt-get install -y curl && \
+    rm -rf /var/lib/apt/lists/*
 
+# Install uv and add to PATH
 ENV PATH="/root/.cargo/bin:$PATH"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 WORKDIR /app
 
