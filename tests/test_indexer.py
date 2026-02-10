@@ -101,14 +101,68 @@ Guide content.
     assert temp_db.get_document("knowledgebase/_snippets/_another.md") is None
 
 
-def test_files_named_with_underscore_but_not_in_snippets_are_indexed(
+def test_multiple_skip_patterns_are_filtered(temp_repo: Path, temp_db: DocumentDatabase) -> None:
+    """Test that multiple underscore directory patterns are skipped."""
+    docs_path = temp_repo / "docs"
+    docs_path.mkdir()
+    kb_path = temp_repo / "knowledgebase"
+    kb_path.mkdir()
+
+    # Create files in various skip patterns (all should be skipped)
+    skip_dirs = [
+        ("_snippets", "snippet.md"),
+        ("_clients", "README.md"),
+        ("_partials", "header.md"),
+        ("_includes", "footer.md"),
+        ("_components", "button.md"),
+    ]
+
+    for dir_name, file_name in skip_dirs:
+        skip_dir = docs_path / dir_name
+        skip_dir.mkdir()
+        skip_file = skip_dir / file_name
+        skip_file.write_text("Content without frontmatter")
+
+    # Create regular file (should be indexed)
+    regular_file = docs_path / "guide.md"
+    regular_file.write_text(
+        """---
+title: User Guide
+description: Guide
+---
+
+Content here.
+"""
+    )
+
+    # Index documentation
+    indexer = DocumentationIndexer(temp_db, temp_repo)
+    successful, failed = indexer.index_documentation()
+
+    # Should only index the regular file, skip all underscore directories
+    assert successful == 1
+    assert failed == 0
+    assert temp_db.count() == 1
+
+    # Verify regular file was indexed
+    doc = temp_db.get_document("docs/guide.md")
+    assert doc is not None
+    assert doc.title == "User Guide"
+
+    # Verify skip pattern files were not indexed
+    assert temp_db.get_document("docs/_snippets/snippet.md") is None
+    assert temp_db.get_document("docs/_clients/README.md") is None
+    assert temp_db.get_document("docs/_partials/header.md") is None
+
+
+def test_files_named_with_underscore_but_not_in_skip_dirs_are_indexed(
     temp_repo: Path, temp_db: DocumentDatabase
 ) -> None:
-    """Test that files starting with underscore but not in _snippets/ are still indexed."""
+    """Test that files starting with underscore but not in skip directories are still indexed."""
     docs_path = temp_repo / "docs"
     docs_path.mkdir()
 
-    # Create file starting with underscore but not in _snippets directory
+    # Create file starting with underscore but not in a skip directory
     underscore_file = docs_path / "_important.md"
     underscore_file.write_text(
         """---
@@ -124,7 +178,7 @@ Important content.
     indexer = DocumentationIndexer(temp_db, temp_repo)
     successful, failed = indexer.index_documentation()
 
-    # Should index the file (it's not in _snippets/)
+    # Should index the file (it's not in a skip directory)
     assert successful == 1
     assert failed == 0
     assert temp_db.count() == 1

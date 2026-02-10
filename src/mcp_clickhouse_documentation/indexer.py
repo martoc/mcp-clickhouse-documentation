@@ -102,8 +102,9 @@ class DocumentationIndexer:
             logger.info(f"Found {len(all_files)} files in {docs_path_name}/ ({len(mdx_files)} MDX, {len(md_files)} MD)")
 
             for file_path in all_files:
-                # Skip snippet files - they're reusable fragments, not standalone docs
-                if "_snippets" in str(file_path):
+                # Skip fragment/partial directories - they're reusable content, not standalone docs
+                skip_patterns = ["_snippets", "_clients", "_partials", "_includes", "_components"]
+                if any(pattern in str(file_path) for pattern in skip_patterns):
                     continue
 
                 try:
