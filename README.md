@@ -47,6 +47,41 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 }
 ```
 
+### Docker Container
+
+Run the pre-built container with indexed documentation:
+
+```bash
+# Pull the image
+docker pull martoc/mcp-clickhouse-documentation:latest
+
+# Run the server
+docker run --rm -i martoc/mcp-clickhouse-documentation:latest
+```
+
+**MCP Configuration for Docker:**
+
+```json
+{
+  "mcpServers": {
+    "clickhouse-documentation": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "martoc/mcp-clickhouse-documentation:latest"
+      ]
+    }
+  }
+}
+```
+
+**Available tags:**
+- `latest` - Latest stable release with pre-indexed documentation
+- `v0.3.0` - Specific version release
+- `main` - Latest commit from main branch
+
 ### Usage
 
 Once configured, Claude can:
@@ -211,6 +246,50 @@ Documents by section:
   development                      63 (  7.4%)
 ==================================================
 ```
+
+## Docker Deployment
+
+### Building the Image
+
+The Docker image includes a pre-indexed documentation database for immediate use:
+
+```bash
+# Build multi-platform image
+make docker-build
+
+# Or manually
+docker build -t martoc/mcp-clickhouse-documentation:latest .
+```
+
+**Multi-stage build process:**
+1. **Builder stage** - Installs dependencies, clones docs, and indexes documentation
+2. **Runtime stage** - Copies indexed database and runs MCP server
+
+### Publishing to Container Registry
+
+```bash
+# Tag with version
+docker tag martoc/mcp-clickhouse-documentation:latest \
+  martoc/mcp-clickhouse-documentation:v0.3.0
+
+# Push to Docker Hub
+docker push martoc/mcp-clickhouse-documentation:latest
+docker push martoc/mcp-clickhouse-documentation:v0.3.0
+```
+
+### Container Features
+
+- ✅ **Pre-indexed database** - Ready to use immediately
+- ✅ **Multi-architecture** - Supports AMD64 and ARM64
+- ✅ **Optimised layers** - Efficient caching and minimal size
+- ✅ **Snippet filtering** - Clean indexing without errors
+- ✅ **Fast startup** - Database included, no indexing needed
+
+### Image Size
+
+- **Compressed**: ~50-70 MB
+- **Uncompressed**: ~150-200 MB
+- **Includes**: Python runtime, dependencies, and indexed documentation
 
 ## Troubleshooting
 
