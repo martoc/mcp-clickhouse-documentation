@@ -30,6 +30,24 @@ This will:
 3. Parse and index ~500-1000 documentation files
 4. Create SQLite database with FTS5 index
 
+### Docker Installation (Recommended)
+
+Use the pre-built container with documentation already indexed:
+
+```bash
+# Pull the latest image
+docker pull martoc/mcp-clickhouse-documentation:latest
+
+# Test the server
+docker run --rm -i martoc/mcp-clickhouse-documentation:latest
+```
+
+**Advantages:**
+- ✅ No local dependencies needed (only Docker)
+- ✅ Documentation pre-indexed and ready to use
+- ✅ Consistent environment across platforms
+- ✅ Automatic updates with new releases
+
 ## MCP Integration
 
 ### Claude Desktop
@@ -59,6 +77,30 @@ Add the server configuration:
 ```
 
 **Important:** Use absolute path, not relative path.
+
+**Docker Configuration (Alternative):**
+
+```json
+{
+  "mcpServers": {
+    "clickhouse-documentation": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "martoc/mcp-clickhouse-documentation:latest"
+      ]
+    }
+  }
+}
+```
+
+**Benefits of Docker:**
+- No local Python/uv installation required
+- Pre-indexed documentation (instant startup)
+- Isolated environment
+- Easy updates (`docker pull`)
 
 Restart Claude Desktop after configuration.
 
