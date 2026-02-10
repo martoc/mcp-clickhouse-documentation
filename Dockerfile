@@ -8,9 +8,11 @@ RUN apt-get update && \
     apt-get install -y git curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Install uv and add to PATH
-ENV PATH="/root/.cargo/bin:$PATH"
+# Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Add uv to PATH
+ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
@@ -33,9 +35,11 @@ RUN apt-get update && \
     apt-get install -y curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Install uv and add to PATH
-ENV PATH="/root/.cargo/bin:$PATH"
+# Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Add uv to PATH
+ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
