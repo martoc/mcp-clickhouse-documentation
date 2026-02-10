@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "clickhouse-documentation": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/martoc/Developer/github.com/martoc/mcp-clickhouse-documentation",
+        "run",
+        "mcp-clickhouse-documentation"
+      ]
+    }
+  }
+}
