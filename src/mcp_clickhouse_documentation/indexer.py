@@ -102,6 +102,10 @@ class DocumentationIndexer:
             logger.info(f"Found {len(all_files)} files in {docs_path_name}/ ({len(mdx_files)} MDX, {len(md_files)} MD)")
 
             for file_path in all_files:
+                # Skip snippet files - they're reusable fragments, not standalone docs
+                if "_snippets" in str(file_path):
+                    continue
+
                 try:
                     doc = self.parser.parse_file(file_path)
                     self.db.insert_document(doc)
