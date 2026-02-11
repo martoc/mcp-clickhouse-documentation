@@ -40,8 +40,11 @@ clean: ## Clean build artifacts and data
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name '*.pyc' -delete
 
-docker-build: ## Build Docker image
-	docker build -t mcp-clickhouse-documentation .
+docker-build: ## Build Docker image for local platform only (faster than multi-platform)
+	docker build --platform linux/arm64 -t mcp-clickhouse-documentation .
+
+docker-build-amd64: ## Build Docker image for amd64 platform
+	docker build --platform linux/amd64 -t mcp-clickhouse-documentation .
 
 docker-run: ## Run Docker container
 	docker run --rm -i mcp-clickhouse-documentation
