@@ -11,5 +11,5 @@ jobs:
       contents: write
     uses: martoc/workflow-container-image/.github/workflows/default.yml@main
     with:
-      platforms: linux/arm64,linux/amd64
+      platforms: linux/amd64
     secrets: inherit
