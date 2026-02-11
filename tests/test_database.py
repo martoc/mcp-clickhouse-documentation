@@ -296,3 +296,33 @@ def test_fts_synchronisation(db: DocumentDatabase) -> None:
     # Old content should not be found
     results = db.search("here")
     assert len(results) == 0
+
+
+def test_insert_documents_batch(db: DocumentDatabase) -> None:
+    """Test batch insert of multiple documents."""
+    docs = [
+        Document(
+            path=f"docs/test{i}.md",
+            title=f"Test Document {i}",
+            description=f"Description {i}",
+            section="test",
+            url=f"https://example.com/test{i}",
+            content=f"Content for document {i}",
+        )
+        for i in range(10)
+    ]
+
+    db.insert_documents_batch(docs)
+    assert db.count() == 10
+
+    # Verify all documents are searchable
+    for i in range(10):
+        doc = db.get_document(f"docs/test{i}.md")
+        assert doc is not None
+        assert doc.title == f"Test Document {i}"
+
+
+def test_insert_documents_batch_empty(db: DocumentDatabase) -> None:
+    """Test batch insert with empty list."""
+    db.insert_documents_batch([])
+    assert db.count() == 0

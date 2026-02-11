@@ -7,6 +7,16 @@ import frontmatter  # type: ignore[import-untyped]
 
 from mcp_clickhouse_documentation.models import Document, DocumentMetadata
 
+# Pre-compile regex patterns for performance (used for every document)
+IMPORT_PATTERN = re.compile(r"^import\s+.*?from\s+[\"'].*?[\"'];?\s*$", re.MULTILINE)
+EXPORT_PATTERN = re.compile(r"^export\s+.*?;?\s*$", re.MULTILINE)
+JSX_SELF_CLOSING_PATTERN = re.compile(r"<[A-Z][a-zA-Z0-9]*\s*(?:\{[^}]*\}|\w+=\"[^\"]*\"|\w+)*\s*/>")
+JSX_PAIRED_TAGS_PATTERN = re.compile(r"</?[A-Z][a-zA-Z0-9]*(?:\s+[^>]*)?>")
+JSX_EXPRESSIONS_PATTERN = re.compile(r"\{[^}]*\}")
+HTML_COMMENTS_PATTERN = re.compile(r"<!--.*?-->", re.DOTALL)
+HTML_TAGS_PATTERN = re.compile(r"<[^>]+>")
+EXCESSIVE_WHITESPACE_PATTERN = re.compile(r"\n\s*\n\s*\n+")
+
 
 class DocumentParser:
     """Parser for MDX and Markdown documentation files."""
@@ -158,30 +168,31 @@ class DocumentParser:
         Returns:
             Cleaned content suitable for indexing
         """
+        # Use pre-compiled patterns for better performance
         # 1. Remove import statements: import ... from ...
-        content = re.sub(r"^import\s+.*?from\s+[\"'].*?[\"'];?\s*$", "", content, flags=re.MULTILINE)
+        content = IMPORT_PATTERN.sub("", content)
 
         # 2. Remove export statements: export ...
-        content = re.sub(r"^export\s+.*?;?\s*$", "", content, flags=re.MULTILINE)
+        content = EXPORT_PATTERN.sub("", content)
 
         # 3. Remove JSX self-closing tags: <Component />
-        content = re.sub(r"<[A-Z][a-zA-Z0-9]*\s*(?:\{[^}]*\}|\w+=\"[^\"]*\"|\w+)*\s*/>", "", content)
+        content = JSX_SELF_CLOSING_PATTERN.sub("", content)
 
         # 4. Remove JSX paired tags: <Component>...</Component>
         # This handles nested tags by matching component names (starting with uppercase)
-        content = re.sub(r"</?[A-Z][a-zA-Z0-9]*(?:\s+[^>]*)?>", "", content)
+        content = JSX_PAIRED_TAGS_PATTERN.sub("", content)
 
         # 5. Remove JSX expressions: {expression}
         # Be careful not to remove code block content
-        content = re.sub(r"\{[^}]*\}", "", content)
+        content = JSX_EXPRESSIONS_PATTERN.sub("", content)
 
         # 6. Remove HTML comments
-        content = re.sub(r"<!--.*?-->", "", content, flags=re.DOTALL)
+        content = HTML_COMMENTS_PATTERN.sub("", content)
 
         # 7. Remove remaining HTML tags (lowercase tags like <div>, <span>)
-        content = re.sub(r"<[^>]+>", "", content)
+        content = HTML_TAGS_PATTERN.sub("", content)
 
         # 8. Clean up excessive whitespace
-        content = re.sub(r"\n\s*\n\s*\n+", "\n\n", content)
+        content = EXCESSIVE_WHITESPACE_PATTERN.sub("\n\n", content)
 
         return content.strip()

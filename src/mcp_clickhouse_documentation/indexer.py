@@ -83,6 +83,8 @@ class DocumentationIndexer:
 
         successful = 0
         failed = 0
+        batch_size = 100
+        document_batch: list = []
 
         # Index all documentation paths
         for docs_path_name in DOCS_PATHS:
@@ -109,15 +111,23 @@ class DocumentationIndexer:
 
                 try:
                     doc = self.parser.parse_file(file_path)
-                    self.db.insert_document(doc)
+                    document_batch.append(doc)
                     successful += 1
 
-                    if successful % 100 == 0:
+                    # Insert in batches for better performance
+                    if len(document_batch) >= batch_size:
+                        self.db.insert_documents_batch(document_batch)
+                        document_batch = []
                         logger.info(f"Indexed {successful} documents...")
 
                 except Exception as e:
                     logger.error(f"Failed to parse {file_path}: {e}")
                     failed += 1
+
+            # Insert any remaining documents in the batch
+            if document_batch:
+                self.db.insert_documents_batch(document_batch)
+                document_batch = []
 
         logger.info(f"Indexing complete: {successful} successful, {failed} failed")
         return successful, failed

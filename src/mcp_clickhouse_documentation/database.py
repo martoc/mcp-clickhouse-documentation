@@ -88,6 +88,27 @@ class DocumentDatabase:
             )
             conn.commit()
 
+    def insert_documents_batch(self, docs: list[Document]) -> None:
+        """Insert or replace multiple documents in a single transaction.
+
+        This is much faster than individual inserts for bulk operations.
+
+        Args:
+            docs: List of documents to insert
+        """
+        if not docs:
+            return
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.executemany(
+                """
+                INSERT OR REPLACE INTO documents (path, title, description, section, url, content)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """,
+                [(doc.path, doc.title, doc.description, doc.section, doc.url, doc.content) for doc in docs],
+            )
+            conn.commit()
+
     def search(self, query: str, section: str | None = None, limit: int = 10) -> list[SearchResult]:
         """Search documents using full-text search with BM25 ranking.
 
