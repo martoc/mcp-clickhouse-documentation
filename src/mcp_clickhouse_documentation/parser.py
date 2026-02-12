@@ -7,15 +7,14 @@ import frontmatter  # type: ignore[import-untyped]
 
 from mcp_clickhouse_documentation.models import Document, DocumentMetadata
 
-# Pre-compile regex patterns for performance (used for every document)
-IMPORT_PATTERN = re.compile(r"^import\s+.*?from\s+[\"'].*?[\"'];?\s*$", re.MULTILINE)
-EXPORT_PATTERN = re.compile(r"^export\s+.*?;?\s*$", re.MULTILINE)
-JSX_SELF_CLOSING_PATTERN = re.compile(r"<[A-Z][a-zA-Z0-9]*\s*(?:\{[^}]*\}|\w+=\"[^\"]*\"|\w+)*\s*/>")
-JSX_PAIRED_TAGS_PATTERN = re.compile(r"</?[A-Z][a-zA-Z0-9]*(?:\s+[^>]*)?>")
-JSX_EXPRESSIONS_PATTERN = re.compile(r"\{[^}]*\}")
-HTML_COMMENTS_PATTERN = re.compile(r"<!--.*?-->", re.DOTALL)
-HTML_TAGS_PATTERN = re.compile(r"<[^>]+>")
-EXCESSIVE_WHITESPACE_PATTERN = re.compile(r"\n\s*\n\s*\n+")
+# Simple, fast patterns that won't cause catastrophic backtracking
+# These are used line-by-line, not on entire document
+IMPORT_LINE = re.compile(r"^import\s+")
+EXPORT_LINE = re.compile(r"^export\s+")
+JSX_COMPONENT_TAG = re.compile(r"<[A-Z]")  # JSX components start with uppercase
+HTML_COMMENT_START = re.compile(r"<!--")
+HTML_TAG = re.compile(r"<[^>]+>")
+EXCESSIVE_WHITESPACE = re.compile(r"\n{3,}")
 
 
 class DocumentParser:
@@ -162,37 +161,64 @@ class DocumentParser:
     def _clean_content(self, content: str) -> str:
         """Clean MDX/Markdown content by removing JSX artifacts.
 
+        Uses a fast line-by-line approach to avoid regex catastrophic backtracking.
+
         Args:
             content: Raw content from file
 
         Returns:
             Cleaned content suitable for indexing
         """
-        # Use pre-compiled patterns for better performance
-        # 1. Remove import statements: import ... from ...
-        content = IMPORT_PATTERN.sub("", content)
+        lines = []
+        in_code_block = False
+        skip_html_comment = False
 
-        # 2. Remove export statements: export ...
-        content = EXPORT_PATTERN.sub("", content)
+        for line in content.splitlines():
+            # Track code blocks (don't process content inside them)
+            if line.strip().startswith("```"):
+                in_code_block = not in_code_block
+                lines.append(line)
+                continue
 
-        # 3. Remove JSX self-closing tags: <Component />
-        content = JSX_SELF_CLOSING_PATTERN.sub("", content)
+            if in_code_block:
+                lines.append(line)
+                continue
 
-        # 4. Remove JSX paired tags: <Component>...</Component>
-        # This handles nested tags by matching component names (starting with uppercase)
-        content = JSX_PAIRED_TAGS_PATTERN.sub("", content)
+            # Skip HTML comment blocks
+            if HTML_COMMENT_START.search(line):
+                skip_html_comment = True
+            if skip_html_comment:
+                if "-->" in line:
+                    skip_html_comment = False
+                continue
 
-        # 5. Remove JSX expressions: {expression}
-        # Be careful not to remove code block content
-        content = JSX_EXPRESSIONS_PATTERN.sub("", content)
+            # Skip import/export statements
+            if IMPORT_LINE.match(line) or EXPORT_LINE.match(line):
+                continue
 
-        # 6. Remove HTML comments
-        content = HTML_COMMENTS_PATTERN.sub("", content)
+            # Skip lines that are pure JSX component tags
+            stripped = line.strip()
+            if stripped and (stripped.startswith("<") or stripped.startswith("{")):
+                if JSX_COMPONENT_TAG.search(stripped):
+                    continue
 
-        # 7. Remove remaining HTML tags (lowercase tags like <div>, <span>)
-        content = HTML_TAGS_PATTERN.sub("", content)
+            # Remove remaining HTML/JSX tags from the line
+            line = HTML_TAG.sub("", line)
 
-        # 8. Clean up excessive whitespace
-        content = EXCESSIVE_WHITESPACE_PATTERN.sub("\n\n", content)
+            # Remove JSX expressions {like this} but only simple ones
+            # Avoid complex regex that can cause backtracking
+            while "{" in line and "}" in line:
+                start = line.find("{")
+                end = line.find("}", start)
+                if end > start and end - start < 100:  # Only remove short expressions
+                    line = line[:start] + line[end + 1 :]
+                else:
+                    break
+
+            lines.append(line)
+
+        # Join and clean up whitespace
+        content = "\n".join(lines)
+        content = EXCESSIVE_WHITESPACE.sub("\n\n", content)
 
         return content.strip()
