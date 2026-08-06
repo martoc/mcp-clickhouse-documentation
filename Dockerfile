@@ -44,6 +44,8 @@ COPY --from=builder /app/src /app/src
 # Copy pre-indexed database from builder
 COPY --from=builder /root/.cache/mcp-clickhouse-documentation /root/.cache/mcp-clickhouse-documentation
 
+EXPOSE 8000
+
 # Run the MCP server directly from the baked venv so no dependency
 # resolution happens on container start
 CMD ["/app/.venv/bin/mcp-clickhouse-documentation"]
