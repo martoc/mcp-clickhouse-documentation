@@ -1,4 +1,4 @@
-.PHONY: init test build format generate index stats run clean docker-build docker-run help
+.PHONY: init test build format generate index stats run clean docker-build docker-run docker-run-http help
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -48,3 +48,7 @@ docker-build-amd64: ## Build Docker image for amd64 platform
 
 docker-run: ## Run Docker container
 	docker run --rm -i mcp-clickhouse-documentation
+
+docker-run-http: ## Run MCP server in Docker over HTTP transport on :8000
+	@echo "==> Running MCP server in Docker (HTTP transport)..."
+	docker run -p 8000:8000 --rm -e MCP_TRANSPORT=http mcp-clickhouse-documentation

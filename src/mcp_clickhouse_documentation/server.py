@@ -1,6 +1,7 @@
 """FastMCP server for ClickHouse documentation search."""
 
 import logging
+import os
 from pathlib import Path
 
 from fastmcp import FastMCP
@@ -89,7 +90,12 @@ def read_documentation(path: str) -> dict[str, str]:
 
 
 def main() -> None:
-    """Run the MCP server."""
+    """Run the MCP server.
+
+    Transport defaults to stdio for backward compatibility with existing
+    per-session Docker invocations. Set MCP_TRANSPORT=http to run as a
+    long-lived HTTP server instead, optionally with MCP_HOST/MCP_PORT.
+    """
     # Check if database exists
     if not DB_PATH.exists():
         logger.warning(
@@ -98,7 +104,13 @@ def main() -> None:
         )
 
     # Run server
-    mcp.run()
+    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+    if transport == "stdio":
+        mcp.run(transport="stdio")
+    else:
+        host = os.environ.get("MCP_HOST", "0.0.0.0")
+        port = int(os.environ.get("MCP_PORT", "8000"))
+        mcp.run(transport="http", host=host, port=port)
 
 
 if __name__ == "__main__":
