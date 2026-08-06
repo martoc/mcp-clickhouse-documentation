@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "MCP server for searching and reading ClickHouse documentation"
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp>=2.0.0,<3.0.0",
+    "fastmcp>=3.2.0,<4.0.0",
     "python-frontmatter>=1.1.0",
 ]
 
